@@ -1,16 +1,28 @@
-# save_wallet
+# Saving Team App
 
-A new Flutter project.
+협력적 소비 관리와 절약 문화를 지원하는 오픈소스 모바일 앱입니다.  
+사용자는 가계부 기능, 예산 설정, 소비 시각화, 절약팀 협업, 커뮤니티 팁 공유를 통해  
+금전적 스트레스를 줄이고 재정적 자립을 이룰 수 있습니다.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## ✨ 주요 기능
+- 1차목표 
 
-A few resources to get you started if this is your first Flutter project:
+- 수입/지출 내역 기록 (카테고리별)
+- 예산 설정 + 초과 시 알림
+- 소비 차트 시각화
+- 절약팁 생성 및 협력 소비 관리
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- 2차목표 
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- 절약 팁/장보기 루틴 커뮤니티 공유
+- 2차 목표:OCR 영수증 인식 (2차 목표)
+
+---
+
+## 🛠 기술 스택
+- **Flutter** + Dart
+- **Firebase** (인증, Firestore DB, 알림)
+- GitHub (오픈소스 관리)
+
