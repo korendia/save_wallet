@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:login_fin/login_screen.dart';  // 로그인 페이지 임포트
+import 'package:save_wallet/screens/login_screen.dart';  // 로그인 페이지 임포트
 import 'package:firebase_core/firebase_core.dart';
-import 'package:login_fin/SignUpPage.dart';
-import 'firebase_options.dart';
+import 'package:save_wallet/screens/SignUpPage.dart';
+import 'package:save_wallet/services/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
