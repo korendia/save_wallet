@@ -1,3 +1,4 @@
+import 'package:save_wallet/services/login_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -42,7 +43,7 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // 로고 원형 아이콘
+// 로고 원형 아이콘
                         Container(
                           width: 120,
                           height: 120,
@@ -61,7 +62,7 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
 
                         const SizedBox(height: 16),
 
-                        // 앱 이름
+// 앱 이름
                         Text(
                           '지갑을 부탁해',
                           style: GoogleFonts.outfit(
@@ -74,7 +75,7 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
 
                         const SizedBox(height: 8),
 
-                        // 서브 타이틀
+// 서브 타이틀
                         Text(
                           '당신의 가계부 관리를 도와드립니다',
                           style: GoogleFonts.manrope(
@@ -87,12 +88,12 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
 
                         const SizedBox(height: 40),
 
-                        // 입력폼
+// 입력폼
                         Form(
                           key: _formKey,
                           child: Column(
                             children: [
-                              // 이메일
+// 이메일
                               Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text(
@@ -123,7 +124,7 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
 
                               const SizedBox(height: 24),
 
-                              // 비밀번호
+// 비밀번호
                               Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text(
@@ -169,7 +170,7 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
 
                         const SizedBox(height: 24),
 
-                        // 로그인 버튼
+// 로그인 버튼
                         SizedBox(
                           width: double.infinity,
                           height: 52,
@@ -180,10 +181,11 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
+
                             onPressed: () {
-                              if (_formKey.currentState?.validate() ?? false) {
-                                print('로그인 시도: ${_emailController.text}');
-                              }
+                              final email = _emailController.text.toString();
+                              final password = _passwordController.text.toString();
+                              login(context, email, password);
                             },
                             child: Text(
                               '로그인',
@@ -198,7 +200,8 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
 
                         const SizedBox(height: 24),
 
-                        // 비밀번호 찾기
+// 비밀번호 찾기
+//추가 : 구현 아직 안 함. 현재 간단한 로그인 / 회원가입 부분만 구현 완료.
                         GestureDetector(
                           onTap: () {
                             print('비밀번호 찾기 클릭');
@@ -218,7 +221,7 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
                 ),
               ),
 
-              // 하단 가입하기
+// 하단 가입하기
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
                 child: Container(
