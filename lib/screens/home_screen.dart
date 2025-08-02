@@ -20,8 +20,8 @@ class HomePageScreen extends StatefulWidget {
 class _HomePageScreenState extends State<HomePageScreen> {
   int _selectedIndex = 1;
   TextEditingController _balanceController = TextEditingController(text: '1250000');
-  TextEditingController _incomeController = TextEditingController();
-  TextEditingController _expenseController = TextEditingController();
+  //TextEditingController _incomeController = TextEditingController();
+  //TextEditingController _expenseController = TextEditingController();
 
   int _totalBudget = 0;
   Map<String, double> _expenseCategories = {};
