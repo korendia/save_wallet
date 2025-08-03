@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/transaction.dart';
+import '../../models/transaction.dart';
 
 class _ManualEntryScreenState extends State<ManualEntryScreen> {
   final _formKey = GlobalKey<FormState>();
@@ -43,6 +43,7 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
               )).toList(),
               onChanged: (value) => setState(() => _type = value!),
             ),
+
             DropdownButtonFormField<String>(
               value: _category,
               items: _categoryOptions.map((label) => DropdownMenuItem(
@@ -52,12 +53,14 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
               onChanged: (value) => setState(() => _category = value!),
               decoration: InputDecoration(labelText: "카테고리"),
             ),
+
             TextFormField(
               decoration: InputDecoration(labelText: "금액"),
               keyboardType: TextInputType.number,
               onSaved: (value) => _amount = int.parse(value!),
               validator: (value) => value!.isEmpty ? '금액 입력' : null,
             ),
+
             ElevatedButton(
               onPressed: _submit,
               child: Text("저장"),

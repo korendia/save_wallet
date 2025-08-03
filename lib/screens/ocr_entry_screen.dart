@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import '../models/transaction.dart';
+import '../../models/transaction.dart';
 
 class OCREntryScreen extends StatefulWidget {
   final Function(Transaction) onAdd;
