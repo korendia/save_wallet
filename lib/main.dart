@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:save_wallet/screens/home_screen.dart';
 import 'package:save_wallet/screens/login_screen.dart';  // 로그인 페이지 임포트
 import 'package:firebase_core/firebase_core.dart';
 import 'package:save_wallet/screens/SignUpPage.dart';
 import 'package:save_wallet/services/firebase_options.dart';
+import 'package:save_wallet/screens/community_screen.dart';
+import 'package:save_wallet/screens/statistics_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +27,10 @@ class MyApp extends StatelessWidget {
       routes: {
         LoginPageWidget.routePath: (context) => const LoginPageWidget(),
         '/signup': (context) => const SignUpPage(), // 가입 페이지
-        // '/home': (context) => const HomePage(), // 로그인 후 메인 페이지. 이후에 추가 바람.
+        '/home': (context) => const HomePageScreen(), // 로그인 후 메인 페이지. 이후에 추가 바람-추가완료
+        '/community': (context) => const CommunityScreen(),
+        //'/statistics': (context) => const StatisticsScreen(),통계페이지,완성후 다시 추가필요
+
       },
       theme: ThemeData(
         primaryColor: const Color(0xFF2797FF),
