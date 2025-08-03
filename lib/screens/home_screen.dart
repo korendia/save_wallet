@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:save_wallet/widgets/bottom_nav.dart';
+
 
 class Transaction {
   final String title;
@@ -335,14 +337,20 @@ class _HomePageScreenState extends State<HomePageScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Statistics'),
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blueAccent,
-        onTap: _onItemTapped,
+      bottomNavigationBar: CustomBottomNavBar(
+        onTabSelected: (int index) {
+          switch (index) {
+            case 0:
+              Navigator.pushNamed(context, '/statistics');
+              break;
+            case 1:
+              Navigator.pushNamed(context, '/home');
+              break;
+            case 2:
+              Navigator.pushNamed(context, '/community');
+              break;
+          }
+        },
       ),
     );
   }
