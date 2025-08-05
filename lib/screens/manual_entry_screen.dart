@@ -1,6 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../models/transaction.dart';
+
+
+class ManualEntryScreen extends StatefulWidget {
+  final String? userId;
+  final Future<void> Function(Transaction_) onAdd;
+
+  const ManualEntryScreen({
+    super.key,
+    required this.userId,
+    required this.onAdd,
+  });
+
+
+
+
+  @override
+  State<ManualEntryScreen> createState() => _ManualEntryScreenState();
+}
+
 
 class _ManualEntryScreenState extends State<ManualEntryScreen> {
   final _formKey = GlobalKey<FormState>();
@@ -13,16 +31,32 @@ class _ManualEntryScreenState extends State<ManualEntryScreen> {
     '식비', '취미-여가', '의료', '교통', '생활', '쇼핑',
   ];
 
-  void _submit() {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-      widget.onAdd(Transaction(
-        type: _type,
-        category: _category,
-        amount: _amount,
-        date: _selectedDate,
-      ));
-      Navigator.of(context).pop();
+  void _submit() async {
+    try {
+      if (_formKey.currentState!.validate()) {
+        _formKey.currentState!.save();
+        await widget.onAdd(Transaction_(
+          type: _type,
+          category: _category,
+          amount: _amount,
+          date: _selectedDate,
+        ));
+        Navigator.of(context).pop();
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('성공적으로 저장되었음'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch(e){
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('실패. 사유 : $e'),
+          duration: Duration(seconds: 10),
+        ),
+      );
     }
   }
 
