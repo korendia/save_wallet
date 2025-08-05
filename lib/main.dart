@@ -26,10 +26,10 @@ class MyApp extends StatelessWidget {
       initialRoute: LoginPageWidget.routePath,  // 로그인 페이지를 초기화면으로 지정
       routes: {
         LoginPageWidget.routePath: (context) => const LoginPageWidget(),
-        '/signup': (context) => const SignUpPage(), // 가입 페이지
-        '/home': (context) => const HomePageScreen(), // 로그인 후 메인 페이지. 이후에 추가 바람-추가완료
-        '/community': (context) => const CommunityScreen(),
-        //'/statistics': (context) => const StatisticsScreen(),통계페이지,완성후 다시 추가필요
+        SignUpPage.routePath: (context) => const SignUpPage(), // 가입 페이지
+        HomePageScreen.routePath: (context) => const HomePageScreen(), // 로그인 후 메인 페이지
+        CommunityScreen.routePath: (context) => const CommunityScreen(), // 커뮤니티
+        // StatisticsScreen.routePath: (context) => const StatisticsScreen(), // 통계 페이지 (완성 후 추가)
 
       },
       theme: ThemeData(
