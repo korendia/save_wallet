@@ -46,13 +46,30 @@ class _HomePageScreenState extends State<HomePageScreen> {
   Map<String, double> _expenseCategories = {};
   List<Transaction> _transactions = [];
 
-  Future<void> getdata() async {
+
+  Future<QuerySnapshot<Map<String, dynamic>>> getfirebasedata() async{
+    DateTime now = DateTime.now();
+    DateTime firstDayOfMonth = DateTime(now.year, now.month, 1);
+    DateTime firstDayOfNextMonth = (now.month < 12)
+        ? DateTime(now.year, now.month + 1, 1)
+        : DateTime(now.year + 1, 1, 1);
+
     final snapshot = await FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
         .collection('MoneyList')
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(firstDayOfMonth))
+        .where('date', isLessThan: Timestamp.fromDate(firstDayOfNextMonth))
         .orderBy('date', descending: true)
         .get();
+
+    return snapshot;
+  }
+
+
+
+
+  Future<void> getdata(QuerySnapshot<Map<String, dynamic>> snapshot) async {
 
     final transactions = snapshot.docs.map((doc) {
       final data = doc.data();
@@ -76,13 +93,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
     });
   }
 
-  Future<void> _addCategoryDialog() async{
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('MoneyList')
-        .orderBy('date', descending: true)
-        .get();
+  Future<void> _addCategoryDialog(QuerySnapshot<Map<String, dynamic>> snapshot) async{
 
     Map<String, double> updatedExpenses = {};
 
@@ -101,13 +112,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
     });
   }
 
-  Future<void> Updatebalance() async{
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('MoneyList')
-        .orderBy('date', descending: true)
-        .get();
+  Future<void> Updatebalance(QuerySnapshot<Map<String, dynamic>> snapshot) async{
 
     double newBalance = 0;
 
@@ -214,20 +219,26 @@ class _HomePageScreenState extends State<HomePageScreen> {
   }
 
 
+  Future<void> forinitstate() async{
+    QuerySnapshot<Map<String, dynamic>> a = await getfirebasedata();
+    await getdata(a);
+    await _addCategoryDialog(a);
+    await Updatebalance(a);
+    await loadBudgetFromFirebase();
+
+  }
+
+
+
 
   @override
-
   void initState() {
     super.initState();
     final user = FirebaseAuth.instance.currentUser;
-    setState(() {
-      userId = user?.uid;
-    });
-
-    getdata();
-    _addCategoryDialog();
-
+    userId = user?.uid;
+    forinitstate();
   }
+
 
 
   Widget build(BuildContext context) {
@@ -265,19 +276,23 @@ class _HomePageScreenState extends State<HomePageScreen> {
                   const SizedBox(height: 20),
 
                   GestureDetector(
-                    onTap: Updatebalance,
+                    onTap: () async{
+                        QuerySnapshot<Map<String, dynamic>> a = await getfirebasedata();
+                        Updatebalance(a);
+                    },
                     child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.blueAccent,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('이번 달 총 예산 포함 총잔액(업데이트하려면 클릭)', style: TextStyle(color: Colors.white)),
-                          Text('₩${_balance.toStringAsFixed(0)}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                    color: Colors.blueAccent,
+                    borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                       Text('이번 달 총 예산 포함 총잔액(업데이트하려면 클릭)', style: TextStyle(color: Colors.white)),
+                        Text('₩${_balance.toStringAsFixed(0)}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.
+                          bold, color: Colors.white)),
                           const SizedBox(height: 8),
 
                           LinearPercentIndicator(
@@ -301,12 +316,13 @@ class _HomePageScreenState extends State<HomePageScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('최근 거래 내역', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text('최근 거래 내역(한 달 기준)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       Row(
                         children: [
                           IconButton(
-                              onPressed: (){
-                                getdata();
+                              onPressed: () async{
+                                QuerySnapshot<Map<String, dynamic>> a = await getfirebasedata();
+                                getdata(a);
                               },
                               icon: Icon(Icons.refresh)
                           ),
@@ -340,14 +356,16 @@ class _HomePageScreenState extends State<HomePageScreen> {
                       )
                     ],
                   ),
-                  const SizedBox(height: 8),
-
-                  _transactions.isEmpty
-                      ? Text('거래 내역이 없습니다.')
-                      : Column(
-                    children: _transactions.map((t) => _buildTransactionItem(t.title, t.amount, t.type)).toList(),
+                  SizedBox(
+                    height: 300,
+                    child: ListView.builder(
+                      itemCount: _transactions.length,
+                      itemBuilder: (context, index) {
+                        final t = _transactions[index];
+                        return _buildTransactionItem(t.title, t.amount, t.type);
+                      },
+                    ),
                   ),
-                  const SizedBox(height: 20),
 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -355,7 +373,10 @@ class _HomePageScreenState extends State<HomePageScreen> {
                       Text('지출 비율', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       IconButton(
                         icon: Icon(Icons.refresh),
-                        onPressed: _addCategoryDialog,
+                        onPressed: () async{
+                          QuerySnapshot<Map<String, dynamic>> a = await getfirebasedata();
+                          _addCategoryDialog(a);
+                          },
                       ),
                     ],
                   ),
