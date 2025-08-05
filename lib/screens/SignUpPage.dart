@@ -4,6 +4,9 @@ import 'package:save_wallet/services/login_service.dart';
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
 
+  static String routeName = 'signup_page';
+  static String routePath = '/signup';
+
   @override
   State<SignUpPage> createState() => _SignUpPageState();
 }
@@ -44,8 +47,8 @@ class _SignUpPageState extends State<SignUpPage> {
             const SizedBox(height: 16),
 
             Text(
-              "계정을 생성하세요",
-              style: Theme.of(context).textTheme.titleLarge
+                "계정을 생성하세요",
+                style: Theme.of(context).textTheme.titleLarge
             ),
 
             const SizedBox(height: 32),
