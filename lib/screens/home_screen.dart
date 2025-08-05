@@ -1,27 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:fl_chart/fl_chart.dart';
+
 import 'package:save_wallet/widgets/bottom_nav.dart';
+import 'package:save_wallet/screens/manual_entry_screen.dart';
+import 'package:save_wallet/screens/ocr_entry_screen.dart';
+import 'package:save_wallet/screens/delete.dart';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../models/transaction.dart';
+
+
 
 
 class Transaction {
   final String title;
-  final String amount;
-  final String date;
+  final int amount;
+  final String type;
 
-  Transaction({required this.title, required this.amount, required this.date});
+  Transaction({required this.title, required this.amount, required this.type});
 }
 
 class HomePageScreen extends StatefulWidget {
   const HomePageScreen({Key? key}) : super(key: key);
+
+  static String routeName = 'home_page';
+  static String routePath = '/homepage';
 
   @override
   State<HomePageScreen> createState() => _HomePageScreenState();
 }
 
 class _HomePageScreenState extends State<HomePageScreen> {
+
+  String? userId;
+
   int _selectedIndex = 1;
-  TextEditingController _balanceController = TextEditingController();
+  double _balance = 0;
+  //TextEditingController _balanceController = TextEditingController();
   //TextEditingController _incomeController = TextEditingController();
   //TextEditingController _expenseController = TextEditingController();
 
@@ -29,80 +46,105 @@ class _HomePageScreenState extends State<HomePageScreen> {
   Map<String, double> _expenseCategories = {};
   List<Transaction> _transactions = [];
 
+  Future<void> getdata() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('MoneyList')
+        .orderBy('date', descending: true)
+        .get();
+
+    final transactions = snapshot.docs.map((doc) {
+      final data = doc.data();
+      return Transaction(
+        title: data['category'],
+        amount: data['amount'],
+        type: data['type'],
+      );
+    }).toList();
+
+    setState(() {
+      _transactions = transactions;
+    });
+
+  }
+
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  void _addCategoryDialog() {
-    TextEditingController _categoryNameController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('카테고리 추가'),
-          content: TextField(
-            controller: _categoryNameController,
-            decoration: InputDecoration(hintText: '카테고리 이름 입력'),
-          ),
+  Future<void> _addCategoryDialog() async{
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('MoneyList')
+        .orderBy('date', descending: true)
+        .get();
 
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('취소'),
-            ),
+    Map<String, double> updatedExpenses = {};
 
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _expenseCategories[_categoryNameController.text] = 0;
-                });
-                Navigator.of(context).pop();
-              },
-              child: Text('추가'),
-            ),
-          ],
-        );
-      },
-    );
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final category = data['category'];
+      final amount = data['amount'];
+      final type = data['type'];
+      if (category != null && amount != null && type == '지출') {
+        updatedExpenses[category] = amount;
+      }
+    }
+
+    setState(() {
+      _expenseCategories = updatedExpenses;
+    });
   }
 
-  void _showBalanceInputDialog() {
-    TextEditingController _balanceInputController = TextEditingController(text: _balanceController.text);
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('잔액 수정'),
-          content: TextField(
-            controller: _balanceInputController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(hintText: '잔액 입력'),
-          ),
+  Future<void> Updatebalance() async{
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('MoneyList')
+        .orderBy('date', descending: true)
+        .get();
 
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('취소'),
-            ),
+    double newBalance = 0;
 
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _balanceController.text = _balanceInputController.text;
-                });
-                Navigator.of(context).pop();
-              },
-              child: Text('확인'),
-            ),
-          ],
-        );
-      },
-    );
+    for (var doc in snapshot.docs){
+      final data = doc.data();
+
+      if( data['type'] == "수입") {
+        newBalance += data['amount'];
+      }
+      else{
+        newBalance -= data['amount'];
+      }
+    }
+
+    setState(() {
+      _balance = newBalance + _totalBudget;
+    });
   }
 
-  void _showBudgetInputDialog() {
+  Future<void> loadBudgetFromFirebase() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('settings')
+        .doc('budget')
+        .get();
+
+    if (doc.exists) {
+      setState(() {
+        _totalBudget = doc['totalBudget'];
+      });
+    }
+  }
+
+
+  Future<void> _showBudgetInputDialog() async{
+    await loadBudgetFromFirebase();
     TextEditingController _budgetInputController = TextEditingController(text: _totalBudget.toString());
     showDialog(
       context: context,
@@ -122,10 +164,30 @@ class _HomePageScreenState extends State<HomePageScreen> {
             ),
 
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async{
                 setState(() {
                   _totalBudget = int.tryParse(_budgetInputController.text) ?? 0;
                 });
+
+                try {
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(userId)
+                      .collection('settings')
+                      .doc('budget')
+                      .set({
+                    'totalBudget': _totalBudget,
+
+                  });
+                } catch(e){
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('오류. 사유 : $e'),
+                        duration: Duration(seconds: 5),
+                      )
+                  );
+                }
+
                 Navigator.of(context).pop();
               },
               child: Text('확인'),
@@ -136,86 +198,40 @@ class _HomePageScreenState extends State<HomePageScreen> {
     );
   }
 
-  void _addTransaction() {
-    TextEditingController _titleController = TextEditingController();
-    TextEditingController _amountController = TextEditingController();
-    TextEditingController _dateController = TextEditingController();
-    String selectedCategory = '';
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('거래 내역 추가'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _titleController,
-                decoration: InputDecoration(hintText: '항목명 입력'),
-              ),
+  Future<void> onAdd(Transaction_ a) async{
 
-              TextField(
-                controller: _amountController,
-                decoration: InputDecoration(hintText: '금액 입력'),
-                keyboardType: TextInputType.number,
-              ),
-
-              TextField(
-                controller: _dateController,
-                decoration: InputDecoration(hintText: '날짜 입력'),
-              ),
-
-              DropdownButton<String>(
-                value: selectedCategory.isEmpty ? null : selectedCategory,
-                hint: Text('카테고리 선택'),
-                isExpanded: true,
-                items: _expenseCategories.keys.map((String category) {
-                  return DropdownMenuItem<String>(
-                    value: category,
-                    child: Text(category),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    selectedCategory = newValue ?? '';
-                  });
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('취소'),
-            ),
-
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _transactions.insert(0, Transaction(
-                    title: _titleController.text,
-                    amount: '₩${_amountController.text}',
-                    date: _dateController.text,
-                  ));
-                  double amountValue = double.tryParse(_amountController.text) ?? 0;
-                  if (selectedCategory.isNotEmpty) {
-                    _expenseCategories[selectedCategory] = (_expenseCategories[selectedCategory] ?? 0) + amountValue.abs();
-                  }
-                });
-                Navigator.of(context).pop();
-              },
-              child: Text('추가'),
-            ),
-          ],
-        );
-      },
-    );
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('MoneyList')
+        .add({
+      'type': a.type,
+      'category': a.category,
+      'amount': a.amount,
+      'date': a.date,
+    });
   }
 
+
+
   @override
+
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    setState(() {
+      userId = user?.uid;
+    });
+
+    getdata();
+    _addCategoryDialog();
+
+  }
+
+
   Widget build(BuildContext context) {
-    double currentBalance = int.tryParse(_balanceController.text)!.toDouble();
+    double currentBalance = _balance;
     double usedPercentage = _totalBudget == 0 ? 0.0 : (1 - (currentBalance / _totalBudget)).clamp(0.0, 1.0);
 
     return Scaffold(
@@ -242,14 +258,14 @@ class _HomePageScreenState extends State<HomePageScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('안녕하세요(Nickname)님', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  //이쪽의 Nickname을 사용자가 가입한 이름으로 바꿔줘야함
+                  //이쪽의 Nickname을 사용자가 가입한 이름으로 바꿔줘야함 + 그러려면 가입할 때 사용자 이름도 받아야함 폼 만들어주면 추가할게
                   const SizedBox(height: 4),
 
                   Text('오늘도 현명한 소비하세요', style: TextStyle(color: Colors.grey)),
                   const SizedBox(height: 20),
 
                   GestureDetector(
-                    onTap: _showBalanceInputDialog,
+                    onTap: Updatebalance,
                     child: Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
@@ -260,8 +276,8 @@ class _HomePageScreenState extends State<HomePageScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('이번 달 총 잔액', style: TextStyle(color: Colors.white)),
-                          Text('₩${_balanceController.text}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text('이번 달 총 예산 포함 총잔액(업데이트하려면 클릭)', style: TextStyle(color: Colors.white)),
+                          Text('₩${_balance.toStringAsFixed(0)}', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
                           const SizedBox(height: 8),
 
                           LinearPercentIndicator(
@@ -274,7 +290,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
                           GestureDetector(
                             onTap: _showBudgetInputDialog,
-                            child: Text('총 예산: ₩$_totalBudget (클릭하여 수정)', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            child: Text('총 예산: ₩$_totalBudget (클릭하여 수정/업데이트)', style: TextStyle(color: Colors.white70, fontSize: 12)),
                           ),
                         ],
                       ),
@@ -286,10 +302,42 @@ class _HomePageScreenState extends State<HomePageScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('최근 거래 내역', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      IconButton(
-                        icon: Icon(Icons.add),
-                        onPressed: _addTransaction,
-                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                              onPressed: (){
+                                getdata();
+                              },
+                              icon: Icon(Icons.refresh)
+                          ),
+                          IconButton(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => ManualEntryScreen(
+                                      userId: userId,
+                                      onAdd: onAdd),
+                              ),
+                            );
+                          },
+                              icon: Icon(Icons.add)),
+                          IconButton(onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => TransactionListScreen(userId: userId)),
+                            );
+                          },
+                              icon: Icon(Icons.remove)),
+                          IconButton(onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => OCREntryScreen(onAdd: onAdd)),
+                            );
+
+                          },
+                              icon: Icon(Icons.camera))
+                        ],
+                      )
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -297,16 +345,16 @@ class _HomePageScreenState extends State<HomePageScreen> {
                   _transactions.isEmpty
                       ? Text('거래 내역이 없습니다.')
                       : Column(
-                    children: _transactions.map((t) => _buildTransactionItem(t.title, t.amount, t.date)).toList(),
+                    children: _transactions.map((t) => _buildTransactionItem(t.title, t.amount, t.type)).toList(),
                   ),
                   const SizedBox(height: 20),
 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('지출 비율 (클릭하여 수정)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text('지출 비율', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       IconButton(
-                        icon: Icon(Icons.add),
+                        icon: Icon(Icons.refresh),
                         onPressed: _addCategoryDialog,
                       ),
                     ],
@@ -326,6 +374,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
                             color: _getCategoryColor(entry.key),
                             titleStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                             radius: 50,
+                            //원 그래프에 이름 말고도 차지 퍼센트라던지 총합도 나오면 괜찮을 것 같은데 내가 이 함수를 모르네.... 여력 되면 추가 고려 바람
                           );
                         }).toList(),
                       ),
@@ -355,11 +404,11 @@ class _HomePageScreenState extends State<HomePageScreen> {
     );
   }
 
-  Widget _buildTransactionItem(String title, String amount, String date) {
+  Widget _buildTransactionItem(String title, int amount, String type) {
     return ListTile(
       title: Text(title),
-      subtitle: Text(date),
-      trailing: Text(amount),
+      subtitle: Text(type),
+      trailing: Text('₩$amount'),
     );
   }
 
