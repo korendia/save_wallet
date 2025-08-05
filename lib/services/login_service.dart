@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:save_wallet/screens/home_screen.dart';
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
+final user = FirebaseAuth.instance.currentUser;
 
 Future<void> login(BuildContext context, String email, String password)async {
   try {
@@ -14,12 +14,10 @@ Future<void> login(BuildContext context, String email, String password)async {
         content: Text('로그인 성공'),
         duration: Duration(seconds: 2),
       ),
-
-        //Navigator.of(context).push(
-        //  MaterialPageRoute(builder: (context) => NewPage()),
-        //);
-        //로그인이 되었으니 화면을 전환하는 부분. 알아서 만들어주면 됨
     );
+
+    Navigator.pushNamed(context, HomePageScreen.routePath);
+
   } catch (e) {
     //오류가 났으면 이 부분 실행
     if (email.isEmpty || password.isEmpty){
@@ -37,7 +35,7 @@ Future<void> login(BuildContext context, String email, String password)async {
         SnackBar(
           content: Text('오류. 사유 : $e'),
           duration: Duration(seconds: 2),
-        ),
+        )
       );
     }
   }
@@ -82,24 +80,4 @@ int confirmIdCheck(BuildContext context, String password, String passwordVerifyi
   }
 
 
-  //입력받은 항목마다 합산 금액 나타내는 거.
-/*
-  Future<int> analizing_money(String item) async{
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('entries')
-        .get();
 
-    int totalSpending = 0;
-
-    for (var doc in snapshot.docs) {
-      if (doc['type'] == 'item') {
-        totalSpending += doc['amount'] as int;
-      }
-    }
-
-    return totalSpending;
-
-  }
- */
