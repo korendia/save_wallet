@@ -5,7 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:save_wallet/screens/SignUpPage.dart';
 import 'package:save_wallet/services/firebase_options.dart';
 import 'package:save_wallet/screens/community_screen.dart';
-import 'package:save_wallet/screens/statistics_screen.dart';
+import 'package:save_wallet/screens/analize_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
         SignUpPage.routePath: (context) => const SignUpPage(), // 가입 페이지
         HomePageScreen.routePath: (context) => const HomePageScreen(), // 로그인 후 메인 페이지
         CommunityScreen.routePath: (context) => const CommunityScreen(), // 커뮤니티
-        // StatisticsScreen.routePath: (context) => const StatisticsScreen(), // 통계 페이지 (완성 후 추가)
+        StatisticsScreen.routePath: (context) => const StatisticsScreen(), // 통계 페이지 (완성 후 추가)
 
       },
       theme: ThemeData(
