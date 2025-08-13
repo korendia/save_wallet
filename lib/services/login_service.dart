@@ -1,9 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:save_wallet/screens/home_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
 final user = FirebaseAuth.instance.currentUser;
+
+String? userId = user?.uid;
 
 Future<void> login(BuildContext context, String email, String password)async {
   try {
@@ -41,10 +44,18 @@ Future<void> login(BuildContext context, String email, String password)async {
   }
 }
 
-Future<void> signup(BuildContext context, String email, String password)async { //회원가입
+Future<void> signup(BuildContext context, String name, String email, String password)async { //회원가입
   try {
     //입력받은 정보 firebase 전송
     await _auth.createUserWithEmailAndPassword(email: email, password: password);
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('settings')
+        .doc('info')
+        .set({
+      'username' : name
+    });
     //정상작동 이 부분 실행
     ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
