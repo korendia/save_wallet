@@ -46,6 +46,8 @@ class _HomePageScreenState extends State<HomePageScreen> {
   Map<String, double> _expenseCategories = {};
   List<Transaction> _transactions = [];
 
+  String Nickname = '';
+
 
   Future<QuerySnapshot<Map<String, dynamic>>> getfirebasedata() async{
     DateTime now = DateTime.now();
@@ -203,6 +205,21 @@ class _HomePageScreenState extends State<HomePageScreen> {
     );
   }
 
+  Future<String> getusername() async{
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('settings')
+        .doc('userinfo')
+        .get();
+
+    if (doc.data()?['username'] != null) {
+      return doc.data()?['username'];
+    }else{
+      return 'no-data';
+    }
+  }
+
 
   Future<void> onAdd(Transaction_ a) async{
 
@@ -225,6 +242,9 @@ class _HomePageScreenState extends State<HomePageScreen> {
     await _addCategoryDialog(a);
     await Updatebalance(a);
     await loadBudgetFromFirebase();
+
+
+    Nickname = await getusername();
 
   }
 
@@ -268,7 +288,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('안녕하세요(Nickname)님', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  Text('안녕하세요, $Nickname님', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                   //이쪽의 Nickname을 사용자가 가입한 이름으로 바꿔줘야함 + 그러려면 가입할 때 사용자 이름도 받아야함 폼 만들어주면 추가할게
                   const SizedBox(height: 4),
 
