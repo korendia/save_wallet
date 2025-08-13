@@ -6,6 +6,8 @@ import 'package:save_wallet/screens/SignUpPage.dart';
 import 'package:save_wallet/services/firebase_options.dart';
 import 'package:save_wallet/screens/community_screen.dart';
 import 'package:save_wallet/screens/statistics_screen.dart';
+import 'firebase_options.dart'; // FlutterFire CLI로 생성됨
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
