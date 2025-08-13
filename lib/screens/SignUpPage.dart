@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:save_wallet/services/login_service.dart';
 
+
+
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
 
@@ -12,6 +14,7 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
+  final TextEditingController usernameController = TextEditingController();
   final TextEditingController userIdController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController passwordVerifyingController = TextEditingController();
@@ -25,6 +28,7 @@ class _SignUpPageState extends State<SignUpPage> {
     if (check == 1) {
       await signup(
         context,
+        usernameController.text,
         userIdController.text,
         passwordController.text,
       );
@@ -52,6 +56,20 @@ class _SignUpPageState extends State<SignUpPage> {
             ),
 
             const SizedBox(height: 32),
+
+            TextFormField(
+              controller: usernameController,
+              decoration: const InputDecoration(
+                labelText: '사용자 이름',
+                prefixIcon: Icon(Icons.person_outline_rounded),
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+            ),
+
+
+            const SizedBox(height: 16),
 
             TextFormField(
               controller: userIdController,
