@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:save_wallet/widgets/bottom_nav.dart';
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
@@ -178,13 +179,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           : SingleChildScrollView(
         child: Column(
           children: [
-            Container(
+            Container(//상단 날짜 클릭 버튼 부분.
               padding: const EdgeInsets.all(16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    '${selectedDate.year}-${selectedDate.month}-${selectedDate.day}',
+                    '${selectedDate.year}-${selectedDate.month}-${selectedDate.day}',//선택 안했으면 기본적으로 오늘 날짜로 들어가있음
                     style: const TextStyle(fontSize: 20),
                   ),
                   const SizedBox(width: 16),
@@ -212,7 +213,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               height: 150,
               alignment: Alignment.centerLeft,
               padding: const EdgeInsets.all(16),
-              child: FutureBuilder<String>(
+              child: FutureBuilder<String>(//데이터 가져오는 부분. 데이터 주고받는 부분이라 futurebuilder 임의 수정 X.
                 future: a != null ? writedaytotal(a!) : Future.value(''),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -251,6 +252,21 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: CustomBottomNavBar(
+        onTabSelected: (int index) {
+          switch (index) {
+            case 0:
+              Navigator.pushNamed(context, '/statistics');
+              break;
+            case 1:
+              Navigator.pushNamed(context, '/home');
+              break;
+            case 2:
+              Navigator.pushNamed(context, '/community');
+              break;
+          }
+        },
       ),
     );
   }
