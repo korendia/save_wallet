@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
         SignUpPage.routePath: (context) => const SignUpPage(), // 가입 페이지
         HomePageScreen.routePath: (context) => const HomePageScreen(), // 로그인 후 메인 페이지
         CommunityScreen.routePath: (context) => const CommunityScreen(), // 커뮤니티
-        StatisticsScreen.routePath: (context) => const StatisticsScreen(), // 통계 페이지 (완성 후 추가)
+        StatisticsScreen.routePath: (context) => const StatisticsScreen(), // 통계 페이지
 
       },
       theme: ThemeData(
