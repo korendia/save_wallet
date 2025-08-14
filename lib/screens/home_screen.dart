@@ -184,8 +184,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
   }
 
   Future<String> _getUserName() async {
-    if (userId == null) return 'no-data';
-
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
@@ -576,7 +574,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
                 );
               },
               icon: const Icon(Icons.list),
-              tooltip: '전체 목록',
+              tooltip: '전체 목록 및 내역 삭제',
             ),
             IconButton(
               onPressed: () {
