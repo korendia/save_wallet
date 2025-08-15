@@ -29,12 +29,41 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     '쇼핑': 0,
   };
 
+  // 카테고리별 색상 및 아이콘 정의
+  Map<String, Color> categoryColors = {
+    '식비': Colors.orange,
+    '취미-여가': Colors.purple,
+    '의료': Colors.red,
+    '교통': Colors.blue,
+    '생활': Colors.green,
+    '쇼핑': Colors.pink,
+  };
+
+  Map<String, IconData> categoryIcons = {
+    '식비': Icons.restaurant,
+    '취미-여가': Icons.sports_esports,
+    '의료': Icons.local_hospital,
+    '교통': Icons.directions_car,
+    '생활': Icons.home,
+    '쇼핑': Icons.shopping_bag,
+  };
+
   Future<DateTime> _pickDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Theme.of(context).primaryColor,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != selectedDate) {
       setState(() {
@@ -65,11 +94,21 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         await showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('데이터 없음'),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                Icon(Icons.info_outline, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                const Text('데이터 없음'),
+              ],
+            ),
             content: const Text('선택한 날짜에 해당하는 데이터가 없습니다.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
                 child: const Text('확인'),
               ),
             ],
@@ -89,7 +128,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         total += (data['amount'] as num?) ?? 0;
       }
     }
-    return "오늘의 총 지출은 ${total.toInt()}원입니다.";
+    return "${total.toInt()}";
   }
 
   Future<void> writeamountofitem(QuerySnapshot<Map<String, dynamic>> snapshot) async {
@@ -105,24 +144,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     }
   }
 
-  String compareitem_max() {
-    double max = -1;
-    List<String> item = [];
+  Map<String, double> getTopExpenses() {
+    Map<String, double> nonZeroExpenses = Map.fromEntries(
+      eachitemmoney.entries.where((entry) => entry.value > 0),
+    );
 
-    for (var entry in eachitemmoney.entries) {
-      if (entry.value > max) {
-        max = entry.value;
-      }
-    }
+    List<MapEntry<String, double>> sortedExpenses = nonZeroExpenses.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
 
-    for (var entry in eachitemmoney.entries) {
-      if (entry.value == max && max > 0) {
-        item.add(entry.key);
-      }
-    }
-
-    final result = item.join(", ");
-    return "가장 지출이 큰 항목: $result\n지출 금액: ${max.toInt()}원";
+    return Map.fromEntries(sortedExpenses.take(3));
   }
 
   Future<void> loadData(DateTime picked) async {
@@ -144,14 +174,18 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
     double total = eachitemmoney.values.reduce((a, b) => a + b);
 
-    return eachitemmoney.entries.map((entry) {
+    return eachitemmoney.entries.where((entry) => entry.value > 0).map((entry) {
       final percentage = (entry.value / total) * 100;
       return PieChartSectionData(
-        color: Colors.primaries[eachitemmoney.keys.toList().indexOf(entry.key) % Colors.primaries.length],
+        color: categoryColors[entry.key] ?? Colors.grey,
         value: entry.value,
-        title: '${entry.key}\n${percentage.toStringAsFixed(1)}%',
-        radius: 80,
-        titleStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+        title: '${percentage.toStringAsFixed(1)}%',
+        radius: 60,
+        titleStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
       );
     }).toList();
   }
@@ -166,93 +200,325 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
+      backgroundColor: colorScheme.surfaceVariant.withOpacity(0.3),
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back_ios, color: colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('일일 소득 / 지출 통계'),
+        title: Text(
+          '일일 지출 통계',
+          style: TextStyle(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: a == null
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+        ),
+      )
           : SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(//상단 날짜 클릭 버튼 부분.
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '${selectedDate.year}-${selectedDate.month}-${selectedDate.day}',//선택 안했으면 기본적으로 오늘 날짜로 들어가있음
-                    style: const TextStyle(fontSize: 20),
+            // 날짜 선택 카드
+            Card(
+              elevation: 8,
+              shadowColor: colorScheme.shadow.withOpacity(0.3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    colors: [
+                      colorScheme.primaryContainer,
+                      colorScheme.primaryContainer.withOpacity(0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  const SizedBox(width: 16),
-                  ElevatedButton(
-                    onPressed: _pickDate,
-                    child: const Text('날짜 선택'),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              color: Colors.lightBlueAccent,
-              width: double.infinity,
-              height: 150,
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                compareitem_max(),
-                style: const TextStyle(fontSize: 18),
-              ),
-            ),
-            Container(
-              color: Colors.lightBlue,
-              width: double.infinity,
-              height: 150,
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.all(16),
-              child: FutureBuilder<String>(//데이터 가져오는 부분. 데이터 주고받는 부분이라 futurebuilder 임의 수정 X.
-                future: a != null ? writedaytotal(a!) : Future.value(''),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  } else if (snapshot.hasError) {
-                    return Text('에러: ${snapshot.error}');
-                  } else if (snapshot.hasData) {
-                    return Text(
-                      snapshot.data!,
-                      style: const TextStyle(fontSize: 18),
-                    );
-                  } else {
-                    return const Text('데이터 없음');
-                  }
-                },
-              ),
-            ),
-            Container(
-              color: CupertinoColors.activeBlue,
-              width: double.infinity,
-              height: 300,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.all(16),
-              child: (eachitemmoney.isEmpty || eachitemmoney.values.every((v) => v == 0))
-                  ? const Text(
-                '지출 데이터 없음',
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              )
-                  : PieChart(
-                PieChartData(
-                  sections: buildPieChartData(),
-                  centerSpaceRadius: 40,
-                  sectionsSpace: 4,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '선택된 날짜',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: colorScheme.onPrimaryContainer.withOpacity(0.7),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${selectedDate.year}년 ${selectedDate.month}월 ${selectedDate.day}일',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ],
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: _pickDate,
+                      icon: const Icon(Icons.calendar_today, size: 18),
+                      label: const Text('변경'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
+
+            const SizedBox(height: 24),
+
+            // 총 지출 카드
+            Card(
+              elevation: 8,
+              shadowColor: colorScheme.shadow.withOpacity(0.3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    colors: [
+                      colorScheme.tertiaryContainer,
+                      colorScheme.tertiaryContainer.withOpacity(0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: colorScheme.tertiary.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.account_balance_wallet,
+                            color: colorScheme.tertiary,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          '오늘의 총 지출',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: colorScheme.onTertiaryContainer.withOpacity(0.8),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    FutureBuilder<String>(
+                      future: a != null ? writedaytotal(a!) : Future.value('0'),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const CircularProgressIndicator();
+                        } else if (snapshot.hasError) {
+                          return Text('에러: ${snapshot.error}');
+                        } else if (snapshot.hasData) {
+                          return Text(
+                            '${snapshot.data!}원',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onTertiaryContainer,
+                            ),
+                          );
+                        } else {
+                          return const Text('데이터 없음');
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // 카테고리별 상위 지출 리스트
+            if (getTopExpenses().isNotEmpty) ...[
+              Text(
+                '카테고리별 지출 현황',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...getTopExpenses().entries.map((entry) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Card(
+                  elevation: 4,
+                  shadowColor: colorScheme.shadow.withOpacity(0.2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    leading: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: categoryColors[entry.key]?.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        categoryIcons[entry.key],
+                        color: categoryColors[entry.key],
+                        size: 24,
+                      ),
+                    ),
+                    title: Text(
+                      entry.key,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                    trailing: Text(
+                      '${entry.value.toInt()}원',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: categoryColors[entry.key],
+                      ),
+                    ),
+                  ),
+                ),
+              )).toList(),
+
+              const SizedBox(height: 24),
+            ],
+
+            // 파이 차트 카드
+            Card(
+              elevation: 8,
+              shadowColor: colorScheme.shadow.withOpacity(0.3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: colorScheme.surface,
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '지출 분포',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      height: 250,
+                      child: (eachitemmoney.isEmpty || eachitemmoney.values.every((v) => v == 0))
+                          ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.pie_chart_outline,
+                            size: 80,
+                            color: colorScheme.onSurface.withOpacity(0.3),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '지출 데이터 없음',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                        ],
+                      )
+                          : PieChart(
+                        PieChartData(
+                          sections: buildPieChartData(),
+                          centerSpaceRadius: 50,
+                          sectionsSpace: 2,
+                          startDegreeOffset: -90,
+                        ),
+                      ),
+                    ),
+                    if (buildPieChartData().isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 8,
+                        children: eachitemmoney.entries
+                            .where((entry) => entry.value > 0)
+                            .map((entry) => Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: categoryColors[entry.key],
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              entry.key,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ))
+                            .toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 100), // 하단 네비게이션 바 여유 공간
           ],
         ),
       ),
+
       bottomNavigationBar: CustomBottomNavBar(
         onTabSelected: (int index) {
           switch (index) {
