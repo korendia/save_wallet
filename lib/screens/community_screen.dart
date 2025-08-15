@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:save_wallet/widgets/bottom_nav.dart';
 import 'package:save_wallet/models/post.dart';
 import 'package:save_wallet/models/comment.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CommunityScreen extends StatefulWidget {
   static const String routePath = '/community';
@@ -12,7 +14,28 @@ class CommunityScreen extends StatefulWidget {
 }
 
 class _CommunityScreenState extends State<CommunityScreen> {
-  final List<Post> _posts = []; // 빈 리스트로 시작
+  final List<Post> _posts = [];
+  String? currentUsername; // 🔹 로그인한 사용자명 저장
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      setState(() {
+        currentUsername = doc.data()?['username'] ?? '익명';
+      });
+    }
+  }
 
   void _showWritePostDialog() {
     final TextEditingController controller = TextEditingController();
@@ -38,12 +61,17 @@ class _CommunityScreenState extends State<CommunityScreen> {
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
                 setState(() {
-                  _posts.insert(0, Post(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    author: '익명', // 실제로는 로그인된 사용자명 사용
-                    content: controller.text.trim(),
-                    createdAt: DateTime.now(),
-                  ));
+                  _posts.insert(
+                    0,
+                    Post(
+                      id: DateTime.now()
+                          .millisecondsSinceEpoch
+                          .toString(),
+                      author: currentUsername ?? '익명', // 🔹 로그인 사용자명
+                      content: controller.text.trim(),
+                      createdAt: DateTime.now(),
+                    ),
+                  );
                 });
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -84,7 +112,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
           ),
           child: Column(
             children: [
-              // 핸들바
               Container(
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 width: 40,
@@ -94,8 +121,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-
-              // 헤더
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -115,10 +140,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   ],
                 ),
               ),
-
               const Divider(height: 1),
-
-              // 댓글 목록
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(16),
@@ -175,8 +197,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
                   },
                 ),
               ),
-
-              // 댓글 입력창
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -204,14 +224,18 @@ class _CommunityScreenState extends State<CommunityScreen> {
                       onPressed: () {
                         if (commentController.text.trim().isNotEmpty) {
                           setModalState(() {
-                            post.comments.add(Comment(
-                              id: DateTime.now().millisecondsSinceEpoch.toString(),
-                              author: '익명', // 실제로는 로그인된 사용자명 사용
-                              content: commentController.text.trim(),
-                              createdAt: DateTime.now(),
-                            ));
+                            post.comments.add(
+                              Comment(
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .toString(),
+                                author: currentUsername ?? '익명', // 🔹 로그인 사용자명
+                                content: commentController.text.trim(),
+                                createdAt: DateTime.now(),
+                              ),
+                            );
                           });
-                          setState(() {}); // 메인 화면도 업데이트
+                          setState(() {});
                           commentController.clear();
                         }
                       },
@@ -253,7 +277,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
       ),
       body: Column(
         children: [
-          // 헤더
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
@@ -278,8 +301,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
               ],
             ),
           ),
-
-          // 게시글 목록
           Expanded(
             child: _posts.isEmpty
                 ? const Center(
@@ -324,7 +345,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 작성자 정보
                         Row(
                           children: [
                             CircleAvatar(
@@ -339,7 +359,8 @@ class _CommunityScreenState extends State<CommunityScreen> {
                             ),
                             const SizedBox(width: 12),
                             Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                              CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   post.author,
@@ -358,18 +379,12 @@ class _CommunityScreenState extends State<CommunityScreen> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 12),
-
-                        // 글 내용
                         Text(
                           post.content,
                           style: const TextStyle(fontSize: 16),
                         ),
-
                         const SizedBox(height: 16),
-
-                        // 액션 버튼들
                         Row(
                           children: [
                             InkWell(
@@ -405,11 +420,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
                                 ),
                               ),
                             ),
-
                             const SizedBox(width: 16),
-
                             InkWell(
-                              onTap: () => _showCommentsBottomSheet(post),
+                              onTap: () =>
+                                  _showCommentsBottomSheet(post),
                               borderRadius: BorderRadius.circular(20),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(

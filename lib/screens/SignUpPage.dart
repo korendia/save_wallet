@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:save_wallet/services/login_service.dart';
-
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -25,13 +25,31 @@ class _SignUpPageState extends State<SignUpPage> {
       passwordController.text,
       passwordVerifyingController.text,
     );
+
     if (check == 1) {
+      // 기존 signup 로직 호출
       await signup(
         context,
         usernameController.text,
         userIdController.text,
         passwordController.text,
       );
+
+      // Firebase에 username 저장
+      try {
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid != null) {
+          await FirebaseFirestore.instance.collection('users').doc(uid).set({
+            'username': usernameController.text.trim(),
+            'email': userIdController.text.trim(),
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('사용자 정보 저장 실패: $e')),
+        );
+      }
     }
   }
 
@@ -43,18 +61,13 @@ class _SignUpPageState extends State<SignUpPage> {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-
             const SizedBox(height: 60),
-
             Icon(Icons.account_circle, size: 80, color: Colors.blueAccent),
-
             const SizedBox(height: 16),
-
             Text(
                 "계정을 생성하세요",
                 style: Theme.of(context).textTheme.titleLarge
             ),
-
             const SizedBox(height: 32),
 
             TextFormField(
@@ -64,10 +77,8 @@ class _SignUpPageState extends State<SignUpPage> {
                 prefixIcon: Icon(Icons.person_outline_rounded),
                 border: OutlineInputBorder(),
               ),
-              keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
             ),
-
 
             const SizedBox(height: 16),
 
