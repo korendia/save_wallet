@@ -14,18 +14,81 @@ class CommunityScreen extends StatefulWidget {
 }
 
 class _CommunityScreenState extends State<CommunityScreen> {
-  final List<Post> _posts = [];
+  List<Post> _posts = [];
   String? currentUsername; // 🔹 로그인한 사용자명 저장
+  final user = FirebaseAuth.instance.currentUser!;
 
   @override
   void initState() {
     super.initState();
     _loadCurrentUser();
+    fetchTop100PostsWithComments();
   }
 
+  Future<void> fetchTop100PostsWithComments() async {
+    final postSnapshot = await FirebaseFirestore.instance
+        .collection('posts')
+        .orderBy('createdAt', descending: true)
+        .limit(100)
+        .get();
+
+    List<Post> loadedPosts = [];
+
+    for (var postDoc in postSnapshot.docs) {
+      final postMap = postDoc.data();
+      final post = Post.fromMap(postMap, postDoc.id);
+
+      final commentSnapshot = await postDoc.reference
+          .collection('comments')
+          .orderBy('createdAt')
+          .get();
+
+      final comments = commentSnapshot.docs.map((doc) {
+        return Comment.fromMap(doc.data(), doc.id);
+      }).toList();
+
+      post.comments = comments;
+      loadedPosts.add(post);
+    }
+
+    setState(() {
+      _posts = loadedPosts;
+    });
+  }
+
+
+
+  Future<void> _uploadpost(Post post) async{
+
+    final doc = await FirebaseFirestore.instance
+        .collection('posts')
+        .doc(post.id)
+        .set({
+      'author' : post.author,
+      'authorID' : user.uid,
+      'content': post.content,
+      'createdAt': post.createdAt,
+      'likes' : post.likes
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> _uploadcomment(Comment newcomment, String postid) async{
+
+    final doc = await FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postid)
+        .collection('comments')
+        .doc(newcomment.id)
+        .set({
+          'id': newcomment.id,
+          'createdAt' : newcomment.createdAt,
+          'content' : newcomment.content,
+          'author' : newcomment.author
+        },
+        SetOptions(merge: true));
+        }
+
   Future<void> _loadCurrentUser() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -36,7 +99,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
       setState(() {
         currentUsername = doc.data()?['username'] ?? '익명';
       });
-    }
   }
 
   void _showWritePostDialog() {
@@ -63,17 +125,27 @@ class _CommunityScreenState extends State<CommunityScreen> {
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
                 setState(() {
-                  _posts.insert(
-                    0,
-                    Post(
-                      id: DateTime.now()
-                          .millisecondsSinceEpoch
-                          .toString(),
-                      author: currentUsername ?? '익명', // 🔹 로그인 사용자명
-                      content: controller.text.trim(),
-                      createdAt: DateTime.now(),
-                    ),
-                  );
+                  try {
+
+                    Post newpost = Post(
+                        id: DateTime.now().millisecondsSinceEpoch.toString(),
+                        author: currentUsername ?? '익명',
+                        content: controller.text.trim(),
+                        createdAt: DateTime.now()
+                    );
+
+                    _posts.insert(0, newpost);
+
+                    _uploadpost(newpost);
+
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('에러 발생: $e'),
+                          duration: Duration(seconds: 2),
+                        )
+                    );
+                  }
                 });
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -88,7 +160,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
     );
   }
 
-  void _toggleLike(Post post) {
+  void _toggleLike(Post post) async {
     setState(() {
       if (post.isLiked) {
         post.likes--;
@@ -98,7 +170,30 @@ class _CommunityScreenState extends State<CommunityScreen> {
         post.isLiked = true;
       }
     });
+
+   
+    try {
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(post.id)
+          .update({'likes': post.likes});
+    } catch (e) {
+      // 오류 발생 시 롤백
+      setState(() {
+        if (post.isLiked) {
+          post.likes--;
+          post.isLiked = false;
+        } else {
+          post.likes++;
+          post.isLiked = true;
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('좋아요 반영 실패: $e')),
+      );
+    }
   }
+
 
   void _showCommentsBottomSheet(Post post) {
     final TextEditingController commentController = TextEditingController();
@@ -226,16 +321,19 @@ class _CommunityScreenState extends State<CommunityScreen> {
                       onPressed: () {
                         if (commentController.text.trim().isNotEmpty) {
                           setModalState(() {
-                            post.comments.add(
-                              Comment(
-                                id: DateTime.now()
-                                    .millisecondsSinceEpoch
-                                    .toString(),
-                                author: currentUsername ?? '익명', // 🔹 로그인 사용자명
-                                content: commentController.text.trim(),
-                                createdAt: DateTime.now(),
-                              ),
+
+                            Comment newcomment = Comment(
+                              id: DateTime.now()
+                                  .millisecondsSinceEpoch
+                                  .toString(),
+                              author: currentUsername ?? '익명', // 🔹 로그인 사용자명
+                              content: commentController.text.trim(),
+                              createdAt: DateTime.now(),
                             );
+
+                            post.comments.add(newcomment);
+
+                            _uploadcomment(newcomment, post.id);
                           });
                           setState(() {});
                           commentController.clear();
@@ -273,6 +371,12 @@ class _CommunityScreenState extends State<CommunityScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('커뮤니티'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black,
