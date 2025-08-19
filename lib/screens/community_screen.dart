@@ -29,6 +29,8 @@ class _CommunityScreenState extends State<CommunityScreen> {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
+          .collection('settings')
+          .doc('userinfo')
           .get();
 
       setState(() {
